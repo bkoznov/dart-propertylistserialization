@@ -2,8 +2,9 @@
 // PropertyListSerialization Copyright © 2021; Electric Bolt Limited.
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:math';
+import 'dart:typed_data';
+
 import 'dateutil.dart';
 
 /// Implements a subset of Apple property list (plist) parser - binary format
@@ -21,13 +22,11 @@ import 'dateutil.dart';
 /// data (NSData) -> Dart ByteData
 
 class BinaryPropertyListReader {
-
-  late int _objectRefSize;
-  late List<int> _offsetTable;
+  int _objectRefSize;
+  List<int> _offsetTable;
   final ByteData _buf;
 
-  BinaryPropertyListReader(ByteData buf)
-      : _buf = buf;
+  BinaryPropertyListReader(ByteData buf) : _buf = buf;
 
   Object parse() {
     // CFBinaryPlistHeader
@@ -45,8 +44,7 @@ class BinaryPropertyListReader {
     // Offset table
     _offsetTable = List.filled(numObjects, 0);
     for (var i = 0; i < numObjects; i++) {
-      _offsetTable[i] = _readLong((offsetIntSize * i) +
-          offsetTableOffset, offsetIntSize);
+      _offsetTable[i] = _readLong((offsetIntSize * i) + offsetTableOffset, offsetIntSize);
     }
 
     return readObject(rootObjectId);
@@ -64,8 +62,7 @@ class BinaryPropertyListReader {
           case 0x9: // boolean true
             return true;
         }
-        throw UnsupportedError(
-            'Unsupported objectInfo $objectInfo');
+        throw UnsupportedError('Unsupported objectInfo $objectInfo');
       case 0x1:
         // integer
         return _readLong(offset + 1, pow(2, objectInfo) as int);
@@ -85,51 +82,52 @@ class BinaryPropertyListReader {
         }
         var secondsSinceEpoch = _buf.getFloat64(offset + 1);
         return parseBinary(secondsSinceEpoch);
-      case 0x4: {
-        // data
-        var lo = _readLengthOffset(offset, objectInfo);
-        return _buf.buffer.asByteData(lo.offset, lo.length);
-      }
-      case 0x5: {
-        // ascii string
-        var lo = _readLengthOffset(offset, objectInfo);
-        return ascii.decoder.convert(_buf.buffer.asUint8List(lo.offset, lo
-            .length));
-      }
-      case 0x6: {
-        // utf16 string
-        var lo = _readLengthOffset(offset, objectInfo);
-        var sb = StringBuffer();
-        for (var i = 0; i < lo.length; i++) {
-          var charCode = _buf.getUint16(lo.offset + (i * 2), Endian.big);
-          sb.writeCharCode(charCode);
+      case 0x4:
+        {
+          // data
+          var lo = _readLengthOffset(offset, objectInfo);
+          return _buf.buffer.asByteData(lo.offset, lo.length);
         }
-        return sb.toString();
-      }
-      case 0xA: {
-        // array
-        var lo = _readLengthOffset(offset, objectInfo);
-        var array = <Object>[];
-        for (var i = 0; i < lo.length; i++) {
-          var arrayObjectId = _readLong(lo.offset + (i * _objectRefSize),
-              _objectRefSize);
-          array.add(readObject(arrayObjectId));
+      case 0x5:
+        {
+          // ascii string
+          var lo = _readLengthOffset(offset, objectInfo);
+          return ascii.decoder.convert(_buf.buffer.asUint8List(lo.offset, lo.length));
         }
-        return array;
-      }
-      case 0xD: {
-        // dict
-        var lo = _readLengthOffset(offset, objectInfo);
-        var dict = <String,Object>{};
-        for (var i = 0; i < lo.length; i++) {
-          var keyObjectId = _readLong(lo.offset + (i * _objectRefSize),
-              _objectRefSize);
-          var valueObjectId = _readLong(lo.offset + (i * _objectRefSize) + (lo
-              .length * _objectRefSize), _objectRefSize);
-          dict[readObject(keyObjectId) as String] = readObject(valueObjectId);
+      case 0x6:
+        {
+          // utf16 string
+          var lo = _readLengthOffset(offset, objectInfo);
+          var sb = StringBuffer();
+          for (var i = 0; i < lo.length; i++) {
+            var charCode = _buf.getUint16(lo.offset + (i * 2), Endian.big);
+            sb.writeCharCode(charCode);
+          }
+          return sb.toString();
         }
-        return dict;
-      }
+      case 0xA:
+        {
+          // array
+          var lo = _readLengthOffset(offset, objectInfo);
+          var array = <Object>[];
+          for (var i = 0; i < lo.length; i++) {
+            var arrayObjectId = _readLong(lo.offset + (i * _objectRefSize), _objectRefSize);
+            array.add(readObject(arrayObjectId));
+          }
+          return array;
+        }
+      case 0xD:
+        {
+          // dict
+          var lo = _readLengthOffset(offset, objectInfo);
+          var dict = <String, Object>{};
+          for (var i = 0; i < lo.length; i++) {
+            var keyObjectId = _readLong(lo.offset + (i * _objectRefSize), _objectRefSize);
+            var valueObjectId = _readLong(lo.offset + (i * _objectRefSize) + (lo.length * _objectRefSize), _objectRefSize);
+            dict[readObject(keyObjectId) as String] = readObject(valueObjectId);
+          }
+          return dict;
+        }
     }
     throw UnsupportedError('Unsupported plist objectType $objectType');
   }
@@ -163,6 +161,6 @@ class BinaryPropertyListReader {
 }
 
 class _LengthOffset {
-  late int length;
-  late int offset;
+  int length;
+  int offset;
 }

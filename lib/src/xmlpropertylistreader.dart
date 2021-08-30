@@ -9,14 +9,15 @@ import 'package:propertylistserialization/src/dateutil.dart';
 import 'package:xml/xml_events.dart';
 
 class XMLPropertyListReader {
-
   final String _plist;
-  late Iterator<XmlEvent> _events;
-  XmlEvent? _pushbackEvent;
-  late int _logIndent = 0;
+  Iterator<XmlEvent> _events;
+  XmlEvent _pushbackEvent;
+  int _logIndent = 0;
   final bool _logging = false;
 
-  XMLPropertyListReader(String plist) : _plist = plist, _pushbackEvent = null;
+  XMLPropertyListReader(String plist)
+      : _plist = plist,
+        _pushbackEvent = null;
 
   Object parse() {
     _events = parseEvents(_plist).iterator;
@@ -30,7 +31,9 @@ class XMLPropertyListReader {
     _logStart('<plist>');
     var event = _nextEventSkipOptionalText();
     if (!(event is XmlStartElementEvent)) {
-      throw _expected(event, 'XmlStartElementEvent (array,dict,string,data,'
+      throw _expected(
+          event,
+          'XmlStartElementEvent (array,dict,string,data,'
           'date,integer,real,true,false)');
     }
     var result = _readObject(event);
@@ -40,7 +43,7 @@ class XMLPropertyListReader {
   }
 
   Object _readObject(XmlStartElementEvent event) {
-    switch(event.name) {
+    switch (event.name) {
       case 'array':
         return _readArray(event.isSelfClosing);
       case 'dict':
@@ -93,7 +96,9 @@ class XMLPropertyListReader {
     var event = _nextEventSkipOptionalText();
     while (!(event is XmlEndElementEvent)) {
       if (!(event is XmlStartElementEvent)) {
-        throw _expected(event, 'XmlStartElementEvent (array,dict,string,data,'
+        throw _expected(
+            event,
+            'XmlStartElementEvent (array,dict,string,data,'
             'date,integer,real,true,false)');
       }
       list.add(_readObject(event));
@@ -122,21 +127,22 @@ class XMLPropertyListReader {
     var event = _nextEventSkipOptionalText();
     while (!(event is XmlEndElementEvent)) {
       // Read key
-      if (!(event is XmlStartElementEvent) || (event is XmlStartElementEvent &&
-          event.name != 'key')) {
+      if (!(event is XmlStartElementEvent) || (event is XmlStartElementEvent && event.name != 'key')) {
         throw _expected(event, 'XmlStartElementEvent (key)');
       }
       event = _nextEvent();
       if (!(event is XmlTextEvent)) {
         throw _expected(event, 'XmlTextEvent');
       }
-      var key = event.text; // key: always a string
+      var key = (event as dynamic).text; // key: always a string
       _requireEndElement('key');
       _log('<key>$key</key>');
       // Read value
       event = _nextEvent();
       if (!(event is XmlStartElementEvent)) {
-        throw _expected(event, 'XmlStartElementEvent (array,dict,string,data,'
+        throw _expected(
+            event,
+            'XmlStartElementEvent (array,dict,string,data,'
             'date,integer,real,true,false)');
       }
       dict[key] = _readObject(event);
@@ -169,7 +175,7 @@ class XMLPropertyListReader {
 
       // Remove any whitespace from the entire string (including interior
       // characters). The result should be a single line Base64 string.
-      sb.write(event.text.replaceAll(RegExp(r'\s+'), ''));
+      sb.write((event as dynamic).text.replaceAll(RegExp(r'\s+'), ''));
       event = _nextEvent();
     }
 
@@ -199,7 +205,7 @@ class XMLPropertyListReader {
       if (!(event is XmlTextEvent)) {
         throw _expected(event, 'XmlTextEvent');
       }
-      var result = event.text.trim();
+      var result = (event as dynamic).text.trim();
       _requireEndElement(tagName);
       _log('<$tagName>$result</$tagName>');
       return result;
@@ -221,7 +227,7 @@ class XMLPropertyListReader {
 
   void _requireStartElement(String tagName) {
     var event = _nextEventSkipOptionalText();
-    if (!(event is XmlStartElementEvent) || event.name != tagName) {
+    if (!(event is XmlStartElementEvent) || (event as dynamic).name != tagName) {
       throw _expected(event, tagName);
     }
     _skipOptionalText();
@@ -233,7 +239,7 @@ class XMLPropertyListReader {
 
   void _requireEndElement(String tagName) {
     var event = _nextEventSkipOptionalText();
-    if (!(event is XmlEndElementEvent) || event.name != tagName) {
+    if (!(event is XmlEndElementEvent) || (event as dynamic).name != tagName) {
       throw _expected(event, tagName);
     }
     _skipOptionalText();
@@ -245,7 +251,9 @@ class XMLPropertyListReader {
   void _requireDoctype() {
     var event = _nextEvent();
     if (!(event is XmlDoctypeEvent)) {
-      throw _expected(event, '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//'
+      throw _expected(
+          event,
+          '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//'
           'EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
     }
     _skipOptionalText();
@@ -292,7 +300,7 @@ class XMLPropertyListReader {
 
   XmlEvent _nextEvent() {
     if (_pushbackEvent != null) {
-      var e = _pushbackEvent!;
+      var e = _pushbackEvent;
       _pushbackEvent = null;
       return e;
     }
@@ -350,5 +358,4 @@ class XMLPropertyListReader {
       print(''.padLeft(_logIndent) + text);
     }
   }
-
 }

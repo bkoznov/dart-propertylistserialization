@@ -8,13 +8,12 @@ import 'dart:typed_data';
 /// uint64, float32 and float64 data types.
 
 class ByteDataWriter {
-
-  late int _bufferLength;
-  late List<ByteData> _bufList;
-  late List<int> _bufListSize;
-  late ByteData _buf;
-  late int _bufSize;
-  late int _totalSize;
+  int _bufferLength;
+  List<ByteData> _bufList;
+  List<int> _bufListSize;
+  ByteData _buf;
+  int _bufSize;
+  int _totalSize;
 
   int get length => _totalSize;
 
@@ -22,7 +21,7 @@ class ByteDataWriter {
   /// multiple byte arrays of [bufferLength] size.
 
   ByteDataWriter([int bufferLength = 1024]) {
-    assert (bufferLength >= Uint64List.bytesPerElement);
+    assert(bufferLength >= Uint64List.bytesPerElement);
 
     _bufferLength = bufferLength;
     _bufList = <ByteData>[];
@@ -201,5 +200,4 @@ class ByteDataWriter {
     _buf = ByteData(_bufferLength);
     _bufSize = 0;
   }
-
 }

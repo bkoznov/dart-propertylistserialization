@@ -10,12 +10,15 @@ import 'src/binarypropertylistreader.dart';
 import 'src/binarypropertylistwriter.dart';
 
 abstract class PropertyListException implements Exception {
-  final Object? _nested;
-  final String? _message;
+  final Object _nested;
+  final String _message;
 
-  PropertyListException(String message) : _nested = null, _message = message;
-  PropertyListException.nested(Object nested) : _nested = nested, _message =
-    null;
+  PropertyListException(String message)
+      : _nested = null,
+        _message = message;
+  PropertyListException.nested(Object nested)
+      : _nested = nested,
+        _message = null;
 
   @override
   String toString() {
@@ -31,7 +34,6 @@ abstract class PropertyListException implements Exception {
 /// encountered while reading the property list.
 
 class PropertyListReadStreamException extends PropertyListException {
-
   PropertyListReadStreamException(String message) : super(message);
   PropertyListReadStreamException.nested(Object nested) : super.nested(nested);
 
@@ -39,7 +41,6 @@ class PropertyListReadStreamException extends PropertyListException {
   String toString() {
     return 'PropertyListReadStreamException: ' + super.toString();
   }
-
 }
 
 /// Analogous to NSPropertyListWriteStreamError - an stream error was
@@ -53,7 +54,6 @@ class PropertyListWriteStreamException extends PropertyListException {
   String toString() {
     return 'PropertyListWriteStreamException: ' + super.toString();
   }
-
 }
 
 /// Wrapper to force writing a double value as a 32-bit floating point number.
@@ -68,7 +68,7 @@ class Float32 {
     if (!(other is Float32)) {
       return false;
     }
-    return value == other.value;
+    return value == (other as dynamic).value;
   }
 
   @override
@@ -78,11 +78,9 @@ class Float32 {
   String toString() {
     return value.toString();
   }
-
 }
 
 class PropertyListSerialization {
-
   /// For the object graph provided, returns a property list as binary ByteData.
   /// Equivalent to iOS method
   /// `[NSPropertyList dataWithPropertyList:format:options:error]`
@@ -100,7 +98,7 @@ class PropertyListSerialization {
     try {
       var p = BinaryPropertyListWriter(obj);
       return p.write();
-    } catch(e, s) {
+    } catch (e, s) {
       print(s);
       throw PropertyListWriteStreamException.nested(e);
     }
@@ -123,7 +121,7 @@ class PropertyListSerialization {
     try {
       var p = XMLPropertyListWriter(obj);
       return p.write();
-    } catch(e, s) {
+    } catch (e, s) {
       print(s);
       throw PropertyListWriteStreamException.nested(e);
     }
@@ -145,7 +143,7 @@ class PropertyListSerialization {
     try {
       var p = BinaryPropertyListReader(data);
       return p.parse();
-    } catch(e, s) {
+    } catch (e, s) {
       if (e is PropertyListReadStreamException) {
         rethrow;
       } else {
@@ -171,10 +169,9 @@ class PropertyListSerialization {
     try {
       var p = XMLPropertyListReader(string);
       return p.parse();
-    } catch(e, s) {
+    } catch (e, s) {
       print(s);
       throw PropertyListReadStreamException.nested(e);
     }
   }
-
 }

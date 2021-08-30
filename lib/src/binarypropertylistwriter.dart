@@ -3,10 +3,12 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-import '../propertylistserialization.dart';
-import 'dateutil.dart';
-import 'bytedatawriter.dart';
+
 import 'package:convert/convert.dart';
+
+import '../propertylistserialization.dart';
+import 'bytedatawriter.dart';
+import 'dateutil.dart';
 
 /// Property list elements are written as follows:
 ///
@@ -22,20 +24,21 @@ import 'package:convert/convert.dart';
 /// ByteData -> data (NSData)
 
 class BinaryPropertyListWriter {
-
   final Object _rootObj;
   final Map<Object, int> _objectIdMap;
-  late int _objectRefSize;
+  int _objectRefSize;
   final ByteDataWriter _os;
   final Map<int, IntegerWrapper> _integerWrapperMap;
   final Map<double, DoubleWrapper> _doubleWrapperMap;
   final Map<ByteDataWrapper, ByteDataWrapper> _byteDataWrapperMap;
 
   BinaryPropertyListWriter(Object rootObj)
-      : _rootObj = rootObj, _objectIdMap = <Object, int>{},
-        _os = ByteDataWriter(), _integerWrapperMap = <int, IntegerWrapper>{},
-        _doubleWrapperMap = <double, DoubleWrapper>{}, _byteDataWrapperMap =
-        <ByteDataWrapper, ByteDataWrapper>{};
+      : _rootObj = rootObj,
+        _objectIdMap = <Object, int>{},
+        _os = ByteDataWriter(),
+        _integerWrapperMap = <int, IntegerWrapper>{},
+        _doubleWrapperMap = <double, DoubleWrapper>{},
+        _byteDataWrapperMap = <ByteDataWrapper, ByteDataWrapper>{};
 
   ByteData write() {
     // CFBinaryPlistHeader
@@ -63,17 +66,17 @@ class BinaryPropertyListWriter {
         _writeLength(0xD, obj.length);
         for (var entry in obj.entries) {
           var key = _readMap(entry.key);
-          _writeLong(_objectIdMap[key]!, _objectRefSize);
+          _writeLong(_objectIdMap[key], _objectRefSize);
         }
         for (var entry in obj.entries) {
           var value = _readMap(entry.value);
-          _writeLong(_objectIdMap[value]!, _objectRefSize);
+          _writeLong(_objectIdMap[value], _objectRefSize);
         }
       } else if (obj is List) {
         _writeLength(0xA, obj.length);
         for (var i = 0; i < obj.length; i++) {
           var value = _readMap(obj[i]);
-          _writeLong(_objectIdMap[value]!, _objectRefSize);
+          _writeLong(_objectIdMap[value], _objectRefSize);
         }
       } else if (obj is String) {
         var byteBuf;
@@ -91,9 +94,9 @@ class BinaryPropertyListWriter {
           // little-endian order.
           var byteList = list.buffer.asUint8List();
           // Swap byte order from little-endian to big-endian.
-          for (var i = 0; i < byteList.length; i+=2) {
-            var temp = byteList[i+1];
-            byteList[i+1] = byteList[i];
+          for (var i = 0; i < byteList.length; i += 2) {
+            var temp = byteList[i + 1];
+            byteList[i + 1] = byteList[i];
             byteList[i] = temp;
           }
           byteBuf = byteList.buffer.asByteData();
@@ -161,7 +164,7 @@ class BinaryPropertyListWriter {
     _os.writeUint8(offsetIntSize);
     _os.writeUint8(_objectRefSize);
     _os.writeUint64(_objectIdMap.length);
-    _os.writeUint64(_objectIdMap[_readMap(_rootObj)]!);
+    _os.writeUint64(_objectIdMap[_readMap(_rootObj)]);
     _os.writeUint64(offsetTableOffset);
 
     return _os.toByteData();
@@ -198,8 +201,12 @@ class BinaryPropertyListWriter {
       for (var entry in obj) {
         _mapObject(entry);
       }
-    } else if (obj is String || obj is IntegerWrapper || obj is Float32 ||
-        obj is DoubleWrapper || obj is ByteDataWrapper || obj is DateTime ||
+    } else if (obj is String ||
+        obj is IntegerWrapper ||
+        obj is Float32 ||
+        obj is DoubleWrapper ||
+        obj is ByteDataWrapper ||
+        obj is DateTime ||
         obj is bool) {
       // do nothing.
     } else {
@@ -255,12 +262,12 @@ class BinaryPropertyListWriter {
 
   Object _readMap(Object obj) {
     if (obj is int) {
-      return _integerWrapperMap[obj]!;
+      return _integerWrapperMap[obj];
     } else if (obj is double) {
-      return _doubleWrapperMap[obj]!;
+      return _doubleWrapperMap[obj];
     } else if (obj is ByteData) {
       var wrapper = ByteDataWrapper(obj);
-      return _byteDataWrapperMap[wrapper]!;
+      return _byteDataWrapperMap[wrapper];
     } else {
       return obj;
     }
@@ -271,6 +278,7 @@ class BinaryPropertyListWriter {
       _os.writeUint8(value >> (8 * i));
     }
   }
+
   void _writeLength(int intType, int length) {
     if (length < 15) {
       _os.writeUint8((intType << 4) + length);
@@ -288,7 +296,6 @@ class BinaryPropertyListWriter {
       _writeLong(length, 4);
     }
   }
-
 }
 
 /// Wrapper to force writing a double value as a 64-bit floating point number,
@@ -304,7 +311,7 @@ class DoubleWrapper {
     if (!(other is DoubleWrapper)) {
       return false;
     }
-    return value == other.value;
+    return value == (other as dynamic).value;
   }
 
   @override
@@ -314,7 +321,6 @@ class DoubleWrapper {
   String toString() {
     return value.toString();
   }
-
 }
 
 /// Wrapper to force writing an integer value as integer which is useful when
@@ -330,7 +336,7 @@ class IntegerWrapper {
     if (!(other is IntegerWrapper)) {
       return false;
     }
-    return value == other.value;
+    return value == (other as dynamic).value;
   }
 
   @override
@@ -340,7 +346,6 @@ class IntegerWrapper {
   String toString() {
     return value.toString();
   }
-
 }
 
 /// Wrapper to force comparison of ByteData's for storage in a Map.
@@ -355,11 +360,12 @@ class ByteDataWrapper {
     if (!(other is ByteDataWrapper)) {
       return false;
     }
-    if (value.lengthInBytes != other.value.lengthInBytes) {
+    // questionable cast -- try deleting 'value ' as well 00 aoolies many place
+    if (value.lengthInBytes != (other as dynamic).value.lengthInBytes) {
       return false;
     }
     for (var i = 0; i < value.lengthInBytes; i++) {
-      if (value.getUint8(i) != other.value.getUint8(i)) {
+      if (value.getUint8(i) != (other as dynamic).value.getUint8(i)) {
         return false;
       }
     }
@@ -381,8 +387,7 @@ class ByteDataWrapper {
     var sb = StringBuffer();
     sb.write('len=${value.lengthInBytes}');
     var list = Uint8List.sublistView(value);
-    var str = hex.encoder.convert(list.sublist(0, list.length > len ? len :
-      list.length));
+    var str = hex.encoder.convert(list.sublist(0, list.length > len ? len : list.length));
     sb.write(' $str');
     if (list.length > len) {
       sb.write('...');
